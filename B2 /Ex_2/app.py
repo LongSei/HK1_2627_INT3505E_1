@@ -40,6 +40,50 @@ def put(bid):
     a = (p.get("author") or "").strip()
 
     if not t or not a:
+        return jsonify(error="Title and Author required"), 422
+
+    BOOKS[i] = {
+        "id": bid,
+        "title": t,
+        "author": a, 
+        "isbn": p.get("isbn") or "",
+        "price": p.get("price") or None
+    }
+
+    return jsonify(BOOKS[i]), 200
+
+# --- Patch /books/<int:bid> --- cập nhật thông tin sách theo ID (chỉ những trường được cung cấp)
+@app.patch("/books/<int:bid>")
+def patch(bid): 
+    i = next(
+        (k for k, b in enumerate(BOOKS) if b["id"] == bid), 
+        None
+    )
+    if i is None: 
+        return jsonify(error="not found"), 404
+
+    p = request.get_json(silent=True) or {}
+    if p.get("price", 0) < 0: 
+        return jsonify(error="Price must be >= 0"), 422
+    
+    for k in ("title", "author", "isbn", "price"): 
+        if k in p: 
+            BOOKS[i][k] = p[k]
+
+    return jsonify(BOOKS[i]), 200
+
+# --- DELETE /books/<int:bid> --- xóa sách theo ID 
+@app.delete("/books/<int:bid>")
+def delete(bid): 
+    i = next(
+        (k for k, b in enumerate(BOOKS) if b["id"] == bid), 
+        None
+    )
+    if i is None: 
+        return jsonify(error="not found"), 404
+
+    BOOKS.pop(i)
+    return "", 204
 
 # --- POST /books --- tạo mới
 @app.post("/books")

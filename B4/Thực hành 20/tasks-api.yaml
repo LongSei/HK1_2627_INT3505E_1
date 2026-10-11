@@ -1,0 +1,454 @@
+openapi: 3.0.3
+info:
+  title: Tasks API
+  version: 1.0.0
+  description: Quản lý task nội bộ (title, status, priority, dueDate, assigneeId).
+  contact:
+    name: LongSei
+    url: https://github.com/LongSei/HK1_2627_INT3505E_1
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5000/v1
+    description: Local development
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: tasks
+    description: Tạo, xem, cập nhật và xoá task
+
+paths:
+  /tasks:
+    get:
+      tags: [tasks]
+      operationId: listTasks
+      summary: Danh sách task
+      description: Trả về danh sách task có phân trang (limit + offset), lọc theo status.
+      parameters:
+        - $ref: '#/components/parameters/PageLimit'
+        - $ref: '#/components/parameters/PageOffset'
+        - $ref: '#/components/parameters/StatusFilter'
+      responses:
+        '200':
+          $ref: '#/components/responses/TaskPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [tasks]
+      operationId: createTask
+      summary: Tạo task mới
+      description: Tạo task. Server sinh id, createdAt; status mặc định là todo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskInput'
+            examples:
+              basic:
+                summary: Task có đủ field
+                value:
+                  title: Viết OpenAPI cho Tasks API
+                  priority: high
+                  dueDate: '2026-10-20'
+                  assigneeId: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+              minimal:
+                summary: Chỉ có title (field bắt buộc)
+                value:
+                  title: Đọc Higginbotham Ch.6
+      responses:
+        '201':
+          description: Task đã được tạo
+          headers:
+            Location:
+              description: URL của task mới
+              schema:
+                type: string
+              example: /v1/tasks/3fa85f64-5717-4562-b3fc-2c963f66afa6
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+              example:
+                id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                title: Viết OpenAPI cho Tasks API
+                status: todo
+                priority: high
+                dueDate: '2026-10-20'
+                assigneeId: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                createdAt: '2026-10-07T09:00:00Z'
+                updatedAt: '2026-10-07T09:00:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /tasks/{taskId}:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+    get:
+      tags: [tasks]
+      operationId: getTaskById
+      summary: Xem một task
+      description: Trả về chi tiết task theo id.
+      responses:
+        '200':
+          description: Chi tiết task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+              example:
+                id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                title: Viết OpenAPI cho Tasks API
+                status: in_progress
+                priority: high
+                dueDate: '2026-10-20'
+                assigneeId: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                createdAt: '2026-10-07T09:00:00Z'
+                updatedAt: '2026-10-08T14:30:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [tasks]
+      operationId: patchTask
+      summary: Cập nhật một phần task
+      description: Chỉ gửi các field cần đổi (JSON Merge Patch). Gửi assigneeId = null để bỏ người nhận.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskInput'
+            examples:
+              changeStatus:
+                summary: Đổi trạng thái
+                value:
+                  status: done
+              reassign:
+                summary: Đổi người nhận và hạn
+                value:
+                  assigneeId: 9b2d4e1a-0c3f-4a5b-8d7e-6f1a2b3c4d5e
+                  dueDate: '2026-10-25'
+              unassign:
+                summary: Bỏ người nhận
+                value:
+                  assigneeId: null
+      responses:
+        '200':
+          description: Task sau khi cập nhật
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+              example:
+                id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                title: Viết OpenAPI cho Tasks API
+                status: done
+                priority: high
+                dueDate: '2026-10-20'
+                assigneeId: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                createdAt: '2026-10-07T09:00:00Z'
+                updatedAt: '2026-10-09T08:15:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [tasks]
+      operationId: deleteTask
+      summary: Xoá task
+      description: Xoá task theo id. Thành công trả 204, không có body.
+      responses:
+        '204':
+          description: Đã xoá
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      description: Id của task
+      schema:
+        type: string
+        format: uuid
+      example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+    PageLimit:
+      name: limit
+      in: query
+      required: false
+      description: Số task tối đa mỗi trang
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      example: 20
+    PageOffset:
+      name: offset
+      in: query
+      required: false
+      description: Bỏ qua bao nhiêu task đầu tiên
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      example: 0
+    StatusFilter:
+      name: status
+      in: query
+      required: false
+      description: Chỉ lấy task có status này
+      schema:
+        $ref: '#/components/schemas/TaskStatus'
+      example: todo
+
+  schemas:
+    TaskStatus:
+      type: string
+      enum: [todo, in_progress, done]
+      example: todo
+    TaskPriority:
+      type: string
+      enum: [low, medium, high]
+      example: medium
+
+    Task:
+      type: object
+      required: [id, title, status, priority, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Viết OpenAPI cho Tasks API
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+          example: '2026-10-20'
+        assigneeId:
+          type: string
+          format: uuid
+          nullable: true
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+          example: '2026-10-07T09:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          example: '2026-10-08T14:30:00Z'
+
+    CreateTaskInput:
+      type: object
+      required: [title]
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Viết OpenAPI cho Tasks API
+        priority:
+          allOf:
+            - $ref: '#/components/schemas/TaskPriority'
+          default: medium
+        dueDate:
+          type: string
+          format: date
+          example: '2026-10-20'
+        assigneeId:
+          type: string
+          format: uuid
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+
+    UpdateTaskInput:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Viết OpenAPI cho Tasks API (bản 2)
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+          example: '2026-10-25'
+        assigneeId:
+          type: string
+          format: uuid
+          nullable: true
+          example: 9b2d4e1a-0c3f-4a5b-8d7e-6f1a2b3c4d5e
+
+    Pagination:
+      type: object
+      required: [limit, offset, total]
+      properties:
+        limit:
+          type: integer
+          example: 20
+        offset:
+          type: integer
+          example: 0
+        total:
+          type: integer
+          example: 2
+
+    Problem:
+      description: Lỗi theo RFC 7807 (application/problem+json)
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          example: https://example.com/problems/task-not-found
+        title:
+          type: string
+          example: Task not found
+        status:
+          type: integer
+          example: 404
+        detail:
+          type: string
+          example: Task 3fa85f64-5717-4562-b3fc-2c963f66afa6 does not exist.
+        instance:
+          type: string
+          example: /v1/tasks/3fa85f64-5717-4562-b3fc-2c963f66afa6
+
+    ValidationProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            errors:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    example: title
+                  message:
+                    type: string
+                    example: title is required
+
+  responses:
+    TaskPage:
+      description: Một trang task
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [data, pagination]
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+              pagination:
+                $ref: '#/components/schemas/Pagination'
+          example:
+            data:
+              - id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                title: Viết OpenAPI cho Tasks API
+                status: todo
+                priority: high
+                dueDate: '2026-10-20'
+                assigneeId: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                createdAt: '2026-10-07T09:00:00Z'
+                updatedAt: '2026-10-07T09:00:00Z'
+              - id: 1b4e28ba-2fa1-41d2-883f-0016d3cca427
+                title: Đọc Higginbotham Ch.6
+                status: todo
+                priority: medium
+                dueDate: null
+                assigneeId: null
+                createdAt: '2026-10-07T10:00:00Z'
+                updatedAt: '2026-10-07T10:00:00Z'
+            pagination:
+              limit: 20
+              offset: 0
+              total: 2
+
+    Unauthorized:
+      description: Thiếu hoặc sai Bearer token
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://example.com/problems/unauthorized
+            title: Unauthorized
+            status: 401
+            detail: Missing or invalid Bearer token.
+            instance: /v1/tasks
+
+    NotFound:
+      description: Không tìm thấy task
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://example.com/problems/task-not-found
+            title: Task not found
+            status: 404
+            detail: Task 3fa85f64-5717-4562-b3fc-2c963f66afa6 does not exist.
+            instance: /v1/tasks/3fa85f64-5717-4562-b3fc-2c963f66afa6
+
+    ValidationError:
+      description: Body không hợp lệ
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblem'
+          example:
+            type: https://example.com/problems/validation-error
+            title: Validation failed
+            status: 422
+            detail: Request body has invalid fields.
+            instance: /v1/tasks
+            errors:
+              - field: title
+                message: title is required
+              - field: priority
+                message: must be one of low, medium, high

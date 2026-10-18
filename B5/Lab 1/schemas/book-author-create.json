@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Body cho POST /api/v1/books/{id}/authors (cặp sách - tác giả kèm role)",
+  "type": "object",
+  "required": [
+    "authorId"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "authorId": {
+      "type": "string",
+      "pattern": "^auth_[0-9]+$"
+    },
+    "role": {
+      "enum": [
+        "lead",
+        "co",
+        "ed"
+      ]
+    }
+  }
+}

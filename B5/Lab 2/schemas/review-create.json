@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Body cho POST /api/v1/books/{id}/reviews",
+  "type": "object",
+  "required": [
+    "userId",
+    "rating"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "userId": {
+      "type": "string",
+      "pattern": "^u_[0-9]+$"
+    },
+    "rating": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
+    }
+  }
+}

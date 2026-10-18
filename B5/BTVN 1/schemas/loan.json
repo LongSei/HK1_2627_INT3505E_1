@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Loan",
+  "type": "object",
+  "required": [
+    "id",
+    "copyId",
+    "memberId",
+    "borrowedAt",
+    "dueDate",
+    "status"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^ln_[0-9]+$"
+    },
+    "copyId": {
+      "type": "string",
+      "pattern": "^cp_[0-9]+$"
+    },
+    "memberId": {
+      "type": "string",
+      "pattern": "^mem_[0-9]+$"
+    },
+    "borrowedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "dueDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "returnedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "status": {
+      "enum": [
+        "borrowing",
+        "returned"
+      ]
+    }
+  }
+}

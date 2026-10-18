@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Member",
+  "type": "object",
+  "required": [
+    "id",
+    "fullName",
+    "membershipType"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^mem_[0-9]+$"
+    },
+    "fullName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "membershipType": {
+      "enum": [
+        "student",
+        "staff",
+        "public"
+      ]
+    },
+    "joinedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

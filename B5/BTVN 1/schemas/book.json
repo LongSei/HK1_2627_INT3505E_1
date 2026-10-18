@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Book",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "authors",
+    "availableCopies"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^bk_[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "isbn": {
+      "type": "string",
+      "pattern": "^\\d{13}$"
+    },
+    "publishedYear": {
+      "type": "integer",
+      "minimum": 1450
+    },
+    "authors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^au_[0-9]+$"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "availableCopies": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

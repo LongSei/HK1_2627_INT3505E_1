@@ -7,7 +7,18 @@
 
 Giả định: thư viện có nhiều đầu sách, mỗi đầu sách có nhiều bản sao; độc giả mượn từng bản sao, hạn trả 14 ngày; một đầu sách có thể có nhiều tác giả.
 
-## ERD
+## ERD (conceptual)
+
+```mermaid
+erDiagram
+    BOOK ||--|{ BOOK_AUTHOR : "có"
+    AUTHOR ||--o{ BOOK_AUTHOR : "viết"
+    BOOK ||--o{ COPY : "có bản sao"
+    COPY ||--o{ LOAN : "được mượn"
+    MEMBER ||--o{ LOAN : "mượn"
+```
+
+## ERD chi tiết (thuộc tính, khoá)
 
 ```mermaid
 erDiagram
@@ -54,22 +65,24 @@ erDiagram
 
 ## URL list (14 endpoints, base `/api/v1`)
 
-| # | Method | URL | Mô tả | Status |
-| - | ------ | --- | ----- | ------ |
-| 1 | GET | `/books?q=&author_id=` | Tìm / lọc đầu sách | 200 |
-| 2 | POST | `/books` | Thêm đầu sách | 201, 400 |
-| 3 | GET | `/books/{bookId}` | Chi tiết đầu sách | 200, 404 |
-| 4 | PATCH | `/books/{bookId}` | Sửa đầu sách | 200, 400, 404 |
-| 5 | DELETE | `/books/{bookId}` | Xoá đầu sách | 204, 404, 409 |
-| 6 | GET | `/books/{bookId}/copies` | Bản sao của đầu sách | 200, 404 |
-| 7 | POST | `/books/{bookId}/copies` | Thêm bản sao | 201, 404 |
-| 8 | GET | `/authors` | Danh sách tác giả | 200 |
-| 9 | GET | `/authors/{authorId}/books` | Sách của tác giả | 200, 404 |
-| 10 | POST | `/members` | Đăng ký độc giả | 201, 400 |
-| 11 | GET | `/members/{memberId}` | Thông tin độc giả | 200, 404 |
-| 12 | POST | `/loans` | Mượn sách `{copyId, memberId}` | 201, 400, 409 |
-| 13 | GET | `/loans?member_id=&status=` | Danh sách lượt mượn | 200 |
-| 14 | PATCH | `/loans/{loanId}` | Trả sách `{"status": "returned"}` | 200, 404, 409 |
+| # | Method | URL | Mô tả | Body | Status |
+| - | ------ | --- | ----- | ---- | ------ |
+| 1 | GET | `/books?q=&author_id=` | Tìm / lọc đầu sách | — | 200 |
+| 2 | POST | `/books` | Thêm đầu sách | `{title, isbn, publishedYear, authorIds}` | 201, 400 |
+| 3 | GET | `/books/{bookId}` | Chi tiết đầu sách | — | 200, 404 |
+| 4 | PATCH | `/books/{bookId}` | Sửa đầu sách | `{title?, isbn?, publishedYear?}` | 200, 400, 404 |
+| 5 | DELETE | `/books/{bookId}` | Xoá đầu sách | — | 204, 404, 409 |
+| 6 | GET | `/books/{bookId}/copies` | Bản sao của đầu sách | — | 200, 404 |
+| 7 | POST | `/books/{bookId}/copies` | Thêm bản sao | `{barcode}` | 201, 404 |
+| 8 | GET | `/authors` | Danh sách tác giả | — | 200 |
+| 9 | GET | `/authors/{authorId}/books` | Sách của tác giả | — | 200, 404 |
+| 10 | POST | `/members` | Đăng ký độc giả | `{fullName, email, membershipType}` | 201, 400 |
+| 11 | GET | `/members/{memberId}` | Thông tin độc giả | — | 200, 404 |
+| 12 | POST | `/loans` | Mượn sách | `{copyId, memberId}` | 201, 400, 409 |
+| 13 | GET | `/loans?member_id=&status=` | Danh sách lượt mượn | — | 200 |
+| 14 | PATCH | `/loans/{loanId}` | Trả sách | `{"status": "returned"}` | 200, 404, 409 |
+
+Body: `?` = không bắt buộc; GET và DELETE không có body. Server tự sinh `id`, client không gửi.
 
 Bản sao phụ thuộc đầu sách nên dùng nested URL `/books/{id}/copies`; lượt mượn liên quan cả bản sao và độc giả nên để top-level `/loans` và lọc bằng `?member_id=`.
 

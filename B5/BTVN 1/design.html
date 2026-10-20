@@ -19,7 +19,20 @@
 <div class="page">
   <h1>BTVN 1 · Resource Design: Thư viện</h1>
   <p>Giả định: thư viện có nhiều <b>đầu sách</b>, mỗi đầu sách có nhiều <b>bản sao</b>; độc giả mượn từng bản sao, hạn trả 14 ngày; một đầu sách có thể có nhiều tác giả.</p>
-  <h2>1. ERD</h2>
+  <h2>1a. ERD (conceptual)</h2>
+  <p>BOOK – AUTHOR là quan hệ nhiều – nhiều, tách qua BOOK_AUTHOR (một đầu sách có ≥ 1 tác giả). BOOK – COPY, COPY – LOAN, MEMBER – LOAN: một – nhiều.</p>
+  <pre class="mermaid">
+erDiagram
+    BOOK ||--|{ BOOK_AUTHOR : "có"
+    AUTHOR ||--o{ BOOK_AUTHOR : "viết"
+    BOOK ||--o{ COPY : "có bản sao"
+    COPY ||--o{ LOAN : "được mượn"
+    MEMBER ||--o{ LOAN : "mượn"
+  </pre>
+</div>
+<div class="page">
+  <h2>1b. ERD chi tiết (thuộc tính, khoá)</h2>
+  <p>PK = khoá chính, FK = khoá ngoại, UK = duy nhất.</p>
   <pre class="mermaid">
 erDiagram
     BOOK ||--|{ BOOK_AUTHOR : "có"
@@ -66,22 +79,23 @@ erDiagram
 <div>
   <h2>2. URL list (14 endpoints, base <code>/api/v1</code>)</h2>
   <table>
-    <tr><th>#</th><th>Method</th><th>URL</th><th>Mô tả</th><th>Status</th></tr>
-    <tr><td>1</td><td>GET</td><td><code>/books?q=&amp;author_id=</code></td><td>Tìm / lọc đầu sách</td><td>200</td></tr>
-    <tr><td>2</td><td>POST</td><td><code>/books</code></td><td>Thêm đầu sách</td><td>201, 400</td></tr>
-    <tr><td>3</td><td>GET</td><td><code>/books/{bookId}</code></td><td>Chi tiết đầu sách</td><td>200, 404</td></tr>
-    <tr><td>4</td><td>PATCH</td><td><code>/books/{bookId}</code></td><td>Sửa đầu sách</td><td>200, 400, 404</td></tr>
-    <tr><td>5</td><td>DELETE</td><td><code>/books/{bookId}</code></td><td>Xoá đầu sách</td><td>204, 404, 409</td></tr>
-    <tr><td>6</td><td>GET</td><td><code>/books/{bookId}/copies</code></td><td>Bản sao của đầu sách</td><td>200, 404</td></tr>
-    <tr><td>7</td><td>POST</td><td><code>/books/{bookId}/copies</code></td><td>Thêm bản sao</td><td>201, 404</td></tr>
-    <tr><td>8</td><td>GET</td><td><code>/authors</code></td><td>Danh sách tác giả</td><td>200</td></tr>
-    <tr><td>9</td><td>GET</td><td><code>/authors/{authorId}/books</code></td><td>Sách của tác giả</td><td>200, 404</td></tr>
-    <tr><td>10</td><td>POST</td><td><code>/members</code></td><td>Đăng ký độc giả</td><td>201, 400</td></tr>
-    <tr><td>11</td><td>GET</td><td><code>/members/{memberId}</code></td><td>Thông tin độc giả</td><td>200, 404</td></tr>
-    <tr><td>12</td><td>POST</td><td><code>/loans</code></td><td>Mượn sách <code>{copyId, memberId}</code></td><td>201, 400, 409</td></tr>
-    <tr><td>13</td><td>GET</td><td><code>/loans?member_id=&amp;status=</code></td><td>Danh sách lượt mượn</td><td>200</td></tr>
-    <tr><td>14</td><td>PATCH</td><td><code>/loans/{loanId}</code></td><td>Trả sách <code>{"status": "returned"}</code></td><td>200, 404, 409</td></tr>
+    <tr><th>#</th><th>Method</th><th>URL</th><th>Mô tả</th><th>Body</th><th>Status</th></tr>
+    <tr><td>1</td><td>GET</td><td><code>/books?q=&amp;author_id=</code></td><td>Tìm / lọc đầu sách</td><td>—</td><td>200</td></tr>
+    <tr><td>2</td><td>POST</td><td><code>/books</code></td><td>Thêm đầu sách</td><td><code>{title, isbn, publishedYear, authorIds}</code></td><td>201, 400</td></tr>
+    <tr><td>3</td><td>GET</td><td><code>/books/{bookId}</code></td><td>Chi tiết đầu sách</td><td>—</td><td>200, 404</td></tr>
+    <tr><td>4</td><td>PATCH</td><td><code>/books/{bookId}</code></td><td>Sửa đầu sách</td><td><code>{title?, isbn?, publishedYear?}</code></td><td>200, 400, 404</td></tr>
+    <tr><td>5</td><td>DELETE</td><td><code>/books/{bookId}</code></td><td>Xoá đầu sách</td><td>—</td><td>204, 404, 409</td></tr>
+    <tr><td>6</td><td>GET</td><td><code>/books/{bookId}/copies</code></td><td>Bản sao của đầu sách</td><td>—</td><td>200, 404</td></tr>
+    <tr><td>7</td><td>POST</td><td><code>/books/{bookId}/copies</code></td><td>Thêm bản sao</td><td><code>{barcode}</code></td><td>201, 404</td></tr>
+    <tr><td>8</td><td>GET</td><td><code>/authors</code></td><td>Danh sách tác giả</td><td>—</td><td>200</td></tr>
+    <tr><td>9</td><td>GET</td><td><code>/authors/{authorId}/books</code></td><td>Sách của tác giả</td><td>—</td><td>200, 404</td></tr>
+    <tr><td>10</td><td>POST</td><td><code>/members</code></td><td>Đăng ký độc giả</td><td><code>{fullName, email, membershipType}</code></td><td>201, 400</td></tr>
+    <tr><td>11</td><td>GET</td><td><code>/members/{memberId}</code></td><td>Thông tin độc giả</td><td>—</td><td>200, 404</td></tr>
+    <tr><td>12</td><td>POST</td><td><code>/loans</code></td><td>Mượn sách</td><td><code>{copyId, memberId}</code></td><td>201, 400, 409</td></tr>
+    <tr><td>13</td><td>GET</td><td><code>/loans?member_id=&amp;status=</code></td><td>Danh sách lượt mượn</td><td>—</td><td>200</td></tr>
+    <tr><td>14</td><td>PATCH</td><td><code>/loans/{loanId}</code></td><td>Trả sách</td><td><code>{&quot;status&quot;: &quot;returned&quot;}</code></td><td>200, 404, 409</td></tr>
   </table>
+  <p>Body: <code>?</code> = không bắt buộc; GET và DELETE không có body. Server tự sinh <code>id</code>, client không gửi.</p>
   <p>Bản sao phụ thuộc đầu sách nên dùng nested URL <code>/books/{id}/copies</code>; lượt mượn liên quan cả bản sao và độc giả nên để top-level <code>/loans</code> và lọc bằng <code>?member_id=</code>.</p>
   <h2>3. JSON Schema</h2>
   <p>3 resource chính: <code>schemas/book.json</code>, <code>schemas/member.json</code>, <code>schemas/loan.json</code> (JSON Schema Draft 2020-12).</p>

@@ -1,0 +1,229 @@
+openapi: 3.0.3
+info:
+  title: Social Network API - Auth
+  version: 1.0.0
+  description: Đăng nhập, làm mới token và đọc bài viết. Access token là JWT (15 phút), refresh token 30 ngày.
+  contact:
+    name: LongSei
+servers:
+  - url: /api/v1
+tags:
+  - name: auth
+    description: Đăng nhập và làm mới token
+  - name: posts
+    description: Bài viết
+
+paths:
+  /auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: Đăng nhập
+      description: |
+        **Scope:** không cần (public).
+        **Lỗi:** body sai → 400; sai email hoặc mật khẩu → 401 (cùng một thông báo, không lộ email nào tồn tại); sai quá 5 lần/phút → 429.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/refresh:
+    post:
+      tags: [auth]
+      operationId: refreshToken
+      summary: Làm mới access token
+      description: |
+        **Scope:** không cần; xác thực bằng refresh token trong body.
+        Mỗi refresh token chỉ dùng được 1 lần (rotation): trả về cặp token mới, token cũ bị thu hồi.
+        **Lỗi:** thiếu refreshToken → 400; refresh token sai, hết hạn hoặc đã dùng → 401.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Cặp token mới
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /posts/{id}:
+    get:
+      tags: [posts]
+      operationId: getPost
+      summary: Xem một bài viết
+      description: |
+        **Scope:** `posts:read`.
+        **Lỗi:** thiếu, sai hoặc hết hạn access token → 401; token không có scope posts:read → 403;
+        bài không tồn tại hoặc là bài private của người khác → 404 (không trả 403 để không lộ bài có tồn tại).
+      security:
+        - oauth2: [posts:read]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Bài viết
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      description: Gửi access token qua header `Authorization Bearer`.
+      flows:
+        password:
+          tokenUrl: /api/v1/auth/login
+          refreshUrl: /api/v1/auth/refresh
+          scopes:
+            posts:read: Đọc bài viết
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: an@example.com
+        password:
+          type: string
+          format: password
+          example: '123456'
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIs...
+    TokenResponse:
+      type: object
+      required: [accessToken, refreshToken, tokenType, expiresIn]
+      properties:
+        accessToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIs...
+        refreshToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIs...
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          example: 900
+    Post:
+      type: object
+      required: [id, content, visibility]
+      properties:
+        id:
+          type: integer
+          example: 1
+        authorId:
+          type: integer
+          example: 1
+        content:
+          type: string
+          example: Xin chào
+        visibility:
+          type: string
+          enum: [public, private]
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: invalid_token
+        message:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Body thiếu hoặc sai field
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: bad_request
+    Unauthorized:
+      description: Chưa xác thực được (sai mật khẩu, token sai / hết hạn / bị thu hồi)
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+          example: Bearer error="invalid_token"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: invalid_token
+    Forbidden:
+      description: Token hợp lệ nhưng thiếu scope
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: insufficient_scope
+    NotFound:
+      description: Không tìm thấy (hoặc không có quyền xem)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: not_found
+    TooManyRequests:
+      description: Gọi quá nhiều lần
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          example: 60
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: too_many_requests

@@ -1,0 +1,6 @@
+flask
+flask-sqlalchemy
+marshmallow
+gunicorn
+psycopg[binary]
+pytest
